@@ -1,5 +1,22 @@
 #include "linear.h"
 
+fmat_t* init_fmat(uint32_t m, uint32_t n) {
+	fmat_t* fmat = (fmat_t*) malloc (sizeof(fmat_t));
+
+	fmat->lines = m;
+	fmat->cols = n;
+	fmat->transposed = false;
+	fmat->mat = zero_mat_f(m, n);
+
+	return fmat;
+}
+
+float* zero_arr_f(uint32_t n) {
+	float* arr;
+	arr = (float *) calloc(n, sizeof(float));
+	return arr;	
+}
+
 float* rand_arr_f(uint32_t n) {
 	float* arr;
 	
@@ -12,10 +29,22 @@ float* rand_arr_f(uint32_t n) {
 	return arr;
 }
 
-float** rand_mat_f(uint32_t n) {
+float** zero_mat_f(uint32_t m, uint32_t n) {
 	float** mat;
 
-	mat = (float**) malloc(n * sizeof(float*));
+	mat = (float**) malloc(m * sizeof(float*));
+
+	for(uint32_t i = 0; i < n; ++i) {
+		mat[i] = zero_arr_f(n);
+	}
+
+	return mat;
+}
+
+float** rand_mat_f(uint32_t m, uint32_t n) {
+	float** mat;
+
+	mat = (float**) malloc(m * sizeof(float*));
 
 	for(uint32_t i = 0; i < n; ++i) {
 		mat[i] = rand_arr_f(n);
@@ -24,6 +53,12 @@ float** rand_mat_f(uint32_t n) {
 	return mat;
 }
 
+void free_fmat(fmat_t* mat) {
+	free_mat(mat->lines, mat->mat);
+	free(mat);
+}
+
+// Private
 void free_mat(uint32_t n, float** mat) {
 	for(uint32_t i = 0; i < n; i++) {
 		free(mat[i]);
@@ -31,15 +66,45 @@ void free_mat(uint32_t n, float** mat) {
 	free(mat);
 }
 
-void print_mat(uint32_t n, float** mat) {
-	for(uint32_t i = 0; i < n; ++i) {
+void print_fmat(fmat_t* mat) {
+	uint32_t m = mat->lines;
+	uint32_t n = mat->cols;
+
+	for(uint32_t i = 0; i < m; ++i) {
 		for(uint32_t j = 0; j < n; ++j) {
-			printf("%f ", mat[i][j]);
+			printf("%f ", mat->mat[i][j]);
 		}
 		printf("\n");
-	}
+	}	
 }
 
+fmat_t* mul_fmat(fmat_t* a, fmat_t* b) {
+	bool is_b_transposed = b->transposed;
+	fmat_t* res = init_fmat(a->cols, b->lines);
+
+	if(is_b_transposed == false) {
+		transpose_fmat(b);
+	}
+
+	for(uint32_t i = 0; i < a->lines; ++i) {
+		for(uint32_t j = 0; j < b->cols; ++j) {
+			res->mat[i][j] = mul_arr(res->cols, a->mat[i], b->mat[j]);
+		}
+	}
+
+	if(is_b_transposed == false) {
+		transpose_fmat(b);
+	}
+
+	return res;
+}
+
+void rand_fmat(fmat_t* mat) {
+	free_mat(mat->lines, mat->mat);
+	mat->mat = rand_mat_f(mat->lines, mat->cols);
+}
+
+// Deprecated
 void mul_mat(uint32_t n, float **a, float **b, float **c) {
 	for(uint32_t i = 0; i < n; ++i) {
 		for(uint32_t j = 0; j < n; ++j) {
@@ -56,29 +121,39 @@ float mul_arr(uint32_t n, float *a, float *b) {
 	return res;
 }
 
-void transpose_mat(uint32_t n, float **mat) {
+
+void transpose_fmat(fmat_t* fmat) {
 	float aux;
-	
-	for(uint32_t i = 0; i < n; ++i) {
+	uint32_t temp;
+
+	for(uint32_t i = 0; i < fmat->lines; ++i) {
 		for(uint32_t j = 0; j < i; ++j) {
-			aux = mat[i][j];
-			mat[i][j] = mat[j][i];
-			mat[j][i] = aux;
+			aux = fmat->mat[i][j];
+			fmat->mat[i][j] = fmat->mat[j][i];
+			fmat->mat[j][i] = aux;
 		}
 	}
+
+	temp = fmat->lines;
+	fmat->lines = fmat->cols;
+	fmat->cols = temp;
+	fmat->transposed = !fmat->transposed;
 }
 
+bool cmp_fmat(fmat_t* a, fmat_t* b) {
+	if(a->lines != b->lines || a->cols != b->cols) {
+		return false;
+	}
 
-int cmp_mat(uint32_t n, float **a, float **b) {
-	for(uint32_t i = 0; i < n; ++i) {
-		for(uint32_t j = 0; j < n; ++j) {
-			if(a[i][j] != b[i][j]) {
-				return 1;
+	for(uint32_t i = 0; i < a->lines; ++i) {
+		for(uint32_t j = 0; j < b->cols; ++j) {
+			if(a->mat[i][j] != b->mat[i][j]) {
+				return true;
 			}
 		}
 	}
 
-	return 0;
+	return false;
 }
 
 
