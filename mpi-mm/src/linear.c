@@ -158,17 +158,29 @@ bool cmp_fmat(fmat_t* a, fmat_t* b) {
 
 
 // Deprecated
-float** blk_mul(uint32_t n, uint32_t blk_x, uint32_t blk_y, float **a, float **b) {
-	float **block;
+//float** blk_mul(uint32_t n, uint32_t blk_x, uint32_t blk_y, float **a, float **b) {
+//	float **block;
+//
+//	block = (float**) malloc(blk_x * sizeof(float*));
+//	for(uint32_t i = 0; i < blk_x; ++i) {
+//		block[i] = (float*) calloc(blk_y, sizeof(float*));
+//	}
+//
+//	for(uint32_t i = 0; i < blk_x; ++i) {
+//		for(uint32_t j = 0; j < blk_y; ++j) {
+//			block[i][j] = mul_arr(n, a[i], b[j]);
+//		}
+//	}
+//
+//	return block;
+//}
 
-	block = (float**) malloc(blk_x * sizeof(float*));
-	for(uint32_t i = 0; i < blk_x; ++i) {
-		block[i] = (float*) calloc(blk_y, sizeof(float*));
-	}
+fmat_t* blk_mul(float **a, float **b, uint32_t blk_x, uint32_t blk_y, uint32_t arr_size) {
+	fmat_t* block = init_fmat(blk_x, blk_y);
 
 	for(uint32_t i = 0; i < blk_x; ++i) {
 		for(uint32_t j = 0; j < blk_y; ++j) {
-			block[i][j] = mul_arr(n, a[i], b[j]);
+			block->mat[i][j] = mul_arr(arr_size, a[i], b[j]);
 		}
 	}
 
@@ -185,6 +197,7 @@ void set_blk(uint32_t i, uint32_t j, uint32_t blk_x, uint32_t blk_y, float **blk
 }
 
 // Deprecated
+/*
 void mul_mat_blk(uint32_t n, uint32_t blk_size, float **a, float **b, float **c) {
 	uint32_t blk_x, blk_y;
 	float **block;
@@ -201,3 +214,4 @@ void mul_mat_blk(uint32_t n, uint32_t blk_size, float **a, float **b, float **c)
 		}
 	}
 }
+*/

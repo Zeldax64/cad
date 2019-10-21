@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "linear.h"
+#include "blockmul.h"
 
 #define N_SIZE 10
 
@@ -75,18 +76,21 @@ int main() {
 	*/
 
 
-	fmat_t* A = init_fmat(1, 4);
-	fmat_t* B = init_fmat(2, 2);
+	fmat_t* A = init_fmat(5, 1);
+	fmat_t* B = init_fmat(1, 5);
+	fmat_t* C;
 
 	rand_fmat(A);
 	rand_fmat(B);
-
-	print_fmat(A);
-	print_fmat(B);
-
-
-	free_fmat(A);
-	free_fmat(B);
+//
+//	print_fmat(A);
+//	print_fmat(B);
+//
+//
+//	free_fmat(A);
+//	free_fmat(B);
+	C = mpi_blk_mul(A, B, 3, 3);
+	print_fmat(C);
 	return 0;
 }
 
