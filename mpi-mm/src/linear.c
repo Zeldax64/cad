@@ -34,7 +34,7 @@ float** zero_mat_f(uint32_t m, uint32_t n) {
 
 	mat = (float**) malloc(m * sizeof(float*));
 
-	for(uint32_t i = 0; i < n; ++i) {
+	for(uint32_t i = 0; i < m; ++i) {
 		mat[i] = zero_arr_f(n);
 	}
 
@@ -46,7 +46,7 @@ float** rand_mat_f(uint32_t m, uint32_t n) {
 
 	mat = (float**) malloc(m * sizeof(float*));
 
-	for(uint32_t i = 0; i < n; ++i) {
+	for(uint32_t i = 0; i < m; ++i) {
 		mat[i] = rand_arr_f(n);
 	}
 
@@ -157,6 +157,7 @@ bool cmp_fmat(fmat_t* a, fmat_t* b) {
 }
 
 
+// Deprecated
 float** blk_mul(uint32_t n, uint32_t blk_x, uint32_t blk_y, float **a, float **b) {
 	float **block;
 
@@ -174,6 +175,7 @@ float** blk_mul(uint32_t n, uint32_t blk_x, uint32_t blk_y, float **a, float **b
 	return block;
 }
 
+// Deprecated
 void set_blk(uint32_t i, uint32_t j, uint32_t blk_x, uint32_t blk_y, float **blk, float **c) {
 	for(uint32_t k = 0; k < blk_x; k++) {
 		for(uint32_t l = 0; l < blk_y; l++) {
@@ -182,6 +184,7 @@ void set_blk(uint32_t i, uint32_t j, uint32_t blk_x, uint32_t blk_y, float **blk
 	}
 }
 
+// Deprecated
 void mul_mat_blk(uint32_t n, uint32_t blk_size, float **a, float **b, float **c) {
 	uint32_t blk_x, blk_y;
 	float **block;
