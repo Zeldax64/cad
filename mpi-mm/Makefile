@@ -1,6 +1,6 @@
 CC = mpicc
 CFLAGS = -Wall -O0 -g
-PROG = mpi-mm
+PROG = mpi-mm.elf
 SRCDIR = src
 
 sources = $(wildcard $(SRCDIR)/*.c)
@@ -22,4 +22,4 @@ $(PROG): $(objects)
 .PHONY: clean
 
 clean:
-	rm $(PROG) $(objects)
+	rm -rf $(PROG) $(objects)
