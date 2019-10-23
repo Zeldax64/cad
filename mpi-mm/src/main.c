@@ -90,7 +90,11 @@ int main() {
 //	free_fmat(A);
 //	free_fmat(B);
 	C = mpi_blk_mul(A, B, 3, 3);
-	print_fmat(C);
+	//print_fmat(B);
+	//transpose_fmat(B);
+	//print_fmat(B);	
+
+	//print_fmat(C);
 	return 0;
 }
 

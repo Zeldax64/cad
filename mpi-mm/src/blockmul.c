@@ -73,6 +73,7 @@ void send_task(mm_t* mm, uint32_t i, uint32_t j) {
 
 	//TODO: copy received matrix to mm->res.
 	// Here is a temporary workaround while not using MPI.
+
 	block = blk_mul(&mm->a->mat[i], &mm->b->mat[j], blk_height, blk_width, mm->a->cols);
 	set_blk(i, j, blk_height, blk_width, block->mat, mm->res->mat);
 	

@@ -123,16 +123,17 @@ float mul_arr(uint32_t n, float *a, float *b) {
 
 
 void transpose_fmat(fmat_t* fmat) {
-	float aux;
 	uint32_t temp;
+	float** t_mat = zero_mat_f(fmat->cols, fmat->lines);
 
 	for(uint32_t i = 0; i < fmat->lines; ++i) {
-		for(uint32_t j = 0; j < i; ++j) {
-			aux = fmat->mat[i][j];
-			fmat->mat[i][j] = fmat->mat[j][i];
-			fmat->mat[j][i] = aux;
+		for(uint32_t j = i; j < fmat->cols; ++j) {
+			t_mat[j][i] = fmat->mat[i][j];
 		}
 	}
+
+	free_mat(fmat->lines, fmat->mat);
+	fmat->mat = t_mat;
 
 	temp = fmat->lines;
 	fmat->lines = fmat->cols;
