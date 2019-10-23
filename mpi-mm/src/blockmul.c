@@ -81,10 +81,8 @@ void send_task(mm_t* mm, uint32_t i, uint32_t j) {
 
 }
 
-
-block_t* init_block(uint32_t a_size, uint32_t b_size) {
-
-}
+// Not used
+//block_t* init_block(uint32_t a_size, uint32_t b_size) {}
 
 void free_mm(mm_t* mm) {
 

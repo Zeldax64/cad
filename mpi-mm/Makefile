@@ -9,8 +9,8 @@ objects = $(patsubst %.c, %.o, $(sources))
 
 run: $(PROG)
 	#@echo "Program Start:"
-	./$(PROG)
-	#mpiexec -n $$(nproc) ./$(PROG)
+	#./$(PROG)
+	mpiexec -n $$(nproc) ./$(PROG)
 
 $(PROG): $(objects)
 	#echo "Compiling..."

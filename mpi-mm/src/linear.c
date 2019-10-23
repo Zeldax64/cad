@@ -158,24 +158,6 @@ bool cmp_fmat(fmat_t* a, fmat_t* b) {
 }
 
 
-// Deprecated
-//float** blk_mul(uint32_t n, uint32_t blk_x, uint32_t blk_y, float **a, float **b) {
-//	float **block;
-//
-//	block = (float**) malloc(blk_x * sizeof(float*));
-//	for(uint32_t i = 0; i < blk_x; ++i) {
-//		block[i] = (float*) calloc(blk_y, sizeof(float*));
-//	}
-//
-//	for(uint32_t i = 0; i < blk_x; ++i) {
-//		for(uint32_t j = 0; j < blk_y; ++j) {
-//			block[i][j] = mul_arr(n, a[i], b[j]);
-//		}
-//	}
-//
-//	return block;
-//}
-
 fmat_t* blk_mul(float **a, float **b, uint32_t blk_x, uint32_t blk_y, uint32_t arr_size) {
 	fmat_t* block = init_fmat(blk_x, blk_y);
 
@@ -188,7 +170,6 @@ fmat_t* blk_mul(float **a, float **b, uint32_t blk_x, uint32_t blk_y, uint32_t a
 	return block;
 }
 
-// Deprecated
 void set_blk(uint32_t i, uint32_t j, uint32_t blk_x, uint32_t blk_y, float **blk, float **c) {
 	for(uint32_t k = 0; k < blk_x; k++) {
 		for(uint32_t l = 0; l < blk_y; l++) {
@@ -196,23 +177,3 @@ void set_blk(uint32_t i, uint32_t j, uint32_t blk_x, uint32_t blk_y, float **blk
 		}
 	}
 }
-
-// Deprecated
-/*
-void mul_mat_blk(uint32_t n, uint32_t blk_size, float **a, float **b, float **c) {
-	uint32_t blk_x, blk_y;
-	float **block;
-
-	for(uint32_t i = 0; i < n; i += blk_size) {
-		blk_x = (n-i) > blk_size ? blk_size : n-i; 
-		for(uint32_t j = 0; j < n; j += blk_size) {
-			blk_y = (n-j) > blk_size ? blk_size : n-j; 
-			
-			block = blk_mul(n, blk_x, blk_y, &a[i], &b[j]);
-			
-			set_blk(i, j, blk_x, blk_y, block, c);
-			free_mat(blk_x, block);
-		}
-	}
-}
-*/
