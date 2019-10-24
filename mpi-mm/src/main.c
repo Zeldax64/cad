@@ -74,8 +74,8 @@ void multiply(uint32_t m, uint32_t n, uint32_t p, float **a, float **b, float **
 
 void master() {
 	int world_size;
-	fmat_t *A = init_fmat(N_SIZE, N_SIZE);
-	fmat_t *B = init_fmat(N_SIZE, N_SIZE);
+	fmat_t *A = init_fmat(10, 5);
+	fmat_t *B = init_fmat(5, 20);
 
 	fmat_t *C = NULL;
 
@@ -84,7 +84,7 @@ void master() {
 
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	
-	C = mpi_blk_mul(A, B, 10, 10);
+	C = mpi_blk_mul(A, B, 2, 8);
 
 	verify(A, B, C);
 
@@ -100,13 +100,6 @@ void slave() {
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 	if(my_rank == 1) {
-		while(1) {
-			if(has_task()) {
-				recv_task();
-			}
-			else {
-				break;
-			}
-		}
+		slave_loop();
 	}
 }
