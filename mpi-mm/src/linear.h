@@ -31,9 +31,10 @@ fmat_t* mul_fmat(fmat_t* a, fmat_t* b);
 void rand_fmat(fmat_t* mat);
 void transpose_fmat(fmat_t* mat);
 void print_fmat(fmat_t* mat);
+fmat_t* slice_fmat_lines(fmat_t* fmat, uint32_t lines);
 bool cmp_fmat(fmat_t* a, fmat_t* b);
 
-// Private
+// Float matrix utilities
 float* zero_arr_f(uint32_t n);
 float* rand_arr_f(uint32_t n);
 float** zero_mat_f(uint32_t m, uint32_t n);
