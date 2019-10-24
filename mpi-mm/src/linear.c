@@ -64,12 +64,15 @@ void free_mat(uint32_t n, float** mat) {
 		free(mat[i]);
 	}
 	free(mat);
+	mat = NULL;
 }
 
 void print_fmat(fmat_t* mat) {
 	uint32_t m = mat->lines;
 	uint32_t n = mat->cols;
 
+
+	printf("Lines: %d, Cols: %d\n", mat->lines, mat->cols);
 	for(uint32_t i = 0; i < m; ++i) {
 		for(uint32_t j = 0; j < n; ++j) {
 			printf("%f ", mat->mat[i][j]);
@@ -176,4 +179,33 @@ void set_blk(uint32_t i, uint32_t j, uint32_t blk_x, uint32_t blk_y, float **blk
 			c[i+k][j+l] = blk[k][l];
 		}
 	}
+}
+
+
+// MPI functions
+void MPI_Send_fmat(fmat_t* fmat, int dest) {
+	MPI_Send(&fmat->lines, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+	MPI_Send(&fmat->cols, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+
+	for(int i = 0; i < fmat->lines; i++) {
+		MPI_Send(&fmat->mat[i][0], fmat->cols, MPI_FLOAT, dest, 0, MPI_COMM_WORLD);
+	}
+}
+
+fmat_t* MPI_Recv_fmat(int src) {
+	MPI_Status stat;
+	fmat_t* fmat = init_fmat(1,1);
+
+	free_mat(fmat->lines, fmat->mat);
+
+	MPI_Recv(&fmat->lines, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &stat);
+	MPI_Recv(&fmat->cols, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &stat);
+	
+	float** new_mat = zero_mat_f(fmat->lines, fmat->cols);
+
+	MPI_Recv(new_mat[0], fmat->cols, MPI_FLOAT, src, 0, MPI_COMM_WORLD, &stat);
+
+	fmat->mat = new_mat;
+
+	return fmat;
 }

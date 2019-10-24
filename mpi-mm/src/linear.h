@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include <mpi.h>
+
 typedef struct farr {
 	uint32_t size;
 
@@ -44,3 +46,7 @@ void mul_mat(uint32_t n, float **a, float **b, float **c);
 void mul_mat_blk(uint32_t n, uint32_t blk_size, float **a, float **b, float **c);
 fmat_t* blk_mul(float **a, float **b, uint32_t blk_x, uint32_t blk_y, uint32_t arr_size);
 void set_blk(uint32_t i, uint32_t j, uint32_t blk_x, uint32_t blk_y, float **blk, float **c); 
+
+// MPI functions
+void MPI_Send_fmat(fmat_t* fmat, int dest);
+fmat_t* MPI_Recv_fmat(int src);

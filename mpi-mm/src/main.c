@@ -11,7 +11,7 @@
 // Reference multiply
 void multiply(uint32_t m, uint32_t n, uint32_t p, float **a, float **b, float **c);
 void master();
-void slave()
+void slave();
 
 
 int main() {
@@ -26,7 +26,7 @@ int main() {
 	int world_rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-	if(world_rank = 0) {
+	if(world_rank == 0) {
 		master();
 	}
 	else {
@@ -61,7 +61,7 @@ int main() {
 //	free_fmat(C);
 //	free_fmat(C_ref);
 
-	return 0;
+//	return 0;
 }
 
 void multiply(uint32_t m, uint32_t n, uint32_t p, float **a, float **b, float **c) {
@@ -75,38 +75,21 @@ void multiply(uint32_t m, uint32_t n, uint32_t p, float **a, float **b, float **
     }
 }
 
+
 void master() {
 	int world_size;
-	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+	fmat_t *fmat = init_fmat(3, 5);
 
+	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+	for(int i = 1; i < world_size; ++i) {
+		MPI_Send_fmat(fmat, i);
+	}
 }
 
 void slave() {
-	
-}
+	fmat_t* fmat;
 
-// MPI Hello World example:
-//	// Initialize the MPI environment
-//	MPI_Init(NULL, NULL);
-//
-//	// Get the number of processes
-//	int world_size;
-//	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-//
-//	// Get the rank of the process
-//	int world_rank;
-//	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-//
-//	// Get the name of the processor
-//	char processor_name[MPI_MAX_PROCESSOR_NAME];
-//	int name_len;
-//	MPI_Get_processor_name(processor_name, &name_len);
-//
-//	// Print off a hello world message
-//	printf("Hello world from processor %s, rank %d out of %d processors\n",
-//	processor_name, world_rank, world_size);
-//
-//	// Finalize the MPI environment.
-//	MPI_Finalize();
-//
-//	return 0;
+	fmat = MPI_Recv_fmat(0);
+
+	print_fmat(fmat);
+}
