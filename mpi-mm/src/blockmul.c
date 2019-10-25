@@ -1,10 +1,10 @@
 #include "blockmul.h"
 
+// Private variables
 static const int MASTER_RANK = 0;
 static int WORLD_SIZE = 0;
 static MPI_Request *workers = NULL;
 static int workers_free = 0;
-
 
 // Master
 fmat_t* mpi_blk_mul(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_width) {
@@ -17,11 +17,16 @@ fmat_t* mpi_blk_mul(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_widt
 		transpose_fmat(b);
 	}
 
+	int dest;
+
 	for(uint32_t i = 0; i < tasks->res->lines; i+=tasks->blk_height) {
 		for(uint32_t j = 0; j < tasks->res->cols; j+=tasks->blk_width) {
 			if(has_worker()) {
-				create_task();
-				int dest = 1;
+				dest = 1;
+				while(tasks->blocks[dest].status != DONE) {
+					dest=dest+1;
+				}
+				allocate_task(tasks, dest);
 				send_task(tasks, i, j, dest);
 			}
 			else {
@@ -67,6 +72,10 @@ mm_t* init_mm(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_width) {
 
 	mm->blocks = (block_t*) malloc(WORLD_SIZE*sizeof(block_t));
 
+	for(int i = 0; i < WORLD_SIZE; ++i) {
+		mm->blocks[i].status = DONE;
+	}
+
 	return mm;
 }
 
@@ -76,8 +85,8 @@ void free_mm(mm_t* mm) {
 }
 
 void init_workers() {
-	//MPI_Comm_size(MPI_COMM_WORLD, &WORLD_SIZE);
-	WORLD_SIZE = 2;
+	MPI_Comm_size(MPI_COMM_WORLD, &WORLD_SIZE);
+	//WORLD_SIZE = 2;
 	workers = (MPI_Request *) malloc(WORLD_SIZE * sizeof(MPI_Request));
 	workers_free = WORLD_SIZE-1;
 }
@@ -91,7 +100,7 @@ void receive_block(mm_t* mm, int src) {
 
 	block = MPI_Recv_fmat(src);
 	set_blk(mm->blocks[src].i, mm->blocks[src].j, block->lines, block->cols, block->mat, mm->res->mat);
-	mm->blocks[src].done = 1;
+	mm->blocks[src].status = DONE;
 
 	free_fmat(block);	
 }
@@ -107,14 +116,12 @@ void wait_any(mm_t* mm) {
 }
 
 void wait_all(mm_t* mm) {
-	int worker = 0;
 	MPI_Status *stats = (MPI_Status*) malloc((WORLD_SIZE-1) * sizeof(MPI_Status));
 
 	MPI_Waitall(WORLD_SIZE-1, &workers[1], stats);
 	
-	// Loop here
 	for(uint32_t i = 1; i < WORLD_SIZE; ++i) {
-		if(mm->blocks[i].done == 0) {
+		if(mm->blocks[i].status == WAITING) {
 			receive_block(mm, i);
 		}
 	}
@@ -122,14 +129,11 @@ void wait_all(mm_t* mm) {
 	workers_free = WORLD_SIZE-1;
 }
 
-void update_status() {
-
-}
-
-void create_task() {
-	int dest = 1;
+void allocate_task(mm_t* mm, int dest) {
 	int task = 1;
+	
 	MPI_Send(&task, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+	mm->blocks[dest].status = PROCESSING;
 
 	workers_free -= 1;
 }
@@ -173,24 +177,28 @@ void send_task(mm_t* mm, uint32_t i, uint32_t j, int dest) {
 	mm->blocks[dest].i = i;
 	mm->blocks[dest].j = j;
 
-	MPI_Irecv(&mm->blocks[dest].done, 1, MPI_INT, dest, 0, MPI_COMM_WORLD, &workers[dest]);
+	MPI_Irecv(&mm->blocks[dest].status, 1, MPI_INT, dest, 0, MPI_COMM_WORLD, &workers[dest]);
 
 	free_fmat(a);
 	free_fmat(b);
 }
 
 void finalize(mm_t* mm) {
-	int dest = 1;
 	int task = 0;
 
 	wait_all(mm);
 
-	MPI_Send(&task, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+	for(int i = 1; i < WORLD_SIZE; ++i) {
+		MPI_Send(&task, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+	}
 	free(workers);
 }
 
 // Slave
 void slave_loop() {
+	int my_rank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+
 	while(1) {
 		if(has_task()) {
 			recv_task();
@@ -202,19 +210,18 @@ void slave_loop() {
 }
 
 int has_task() {
-	int has_task;
+	int task;
 	MPI_Status stat;
 
-	MPI_Recv(&has_task, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &stat);
-	
-	return has_task;	
+	MPI_Recv(&task, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &stat);
+	return task;	
 }
 
 void recv_task() {
 	uint32_t blk_height, blk_width;
 	MPI_Status stat;
 	fmat_t *a, *b, *block;
-	int done = 0;
+	int done = WAITING;
 
 	MPI_Recv(&blk_height, 1, MPI_INT, MASTER_RANK, 0, MPI_COMM_WORLD, &stat);
 	MPI_Recv(&blk_width, 1, MPI_INT, MASTER_RANK, 0, MPI_COMM_WORLD, &stat);
@@ -230,4 +237,6 @@ void recv_task() {
 	MPI_Send_fmat(block, MASTER_RANK);
 
 	free_fmat(block);
+	free_fmat(a);
+	free_fmat(b);
 }

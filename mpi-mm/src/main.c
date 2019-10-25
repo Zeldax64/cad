@@ -6,7 +6,7 @@
 #include "linear.h"
 #include "blockmul.h"
 
-#define N_SIZE 10
+#define N_SIZE 2000
 
 // Reference multiply
 void multiply(uint32_t m, uint32_t n, uint32_t p, float **a, float **b, float **c);
@@ -74,8 +74,8 @@ void multiply(uint32_t m, uint32_t n, uint32_t p, float **a, float **b, float **
 
 void master() {
 	int world_size;
-	fmat_t *A = init_fmat(10, 5);
-	fmat_t *B = init_fmat(5, 20);
+	fmat_t *A = init_fmat(N_SIZE, N_SIZE);
+	fmat_t *B = init_fmat(N_SIZE, N_SIZE);
 
 	fmat_t *C = NULL;
 
@@ -84,11 +84,11 @@ void master() {
 
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	
-	C = mpi_blk_mul(A, B, 2, 8);
+	C = mpi_blk_mul(A, B, 8, 8);
 
 	verify(A, B, C);
-
 	printf("Master exit\n");
+
 
 	free_fmat(A);
 	free_fmat(B);
@@ -96,10 +96,6 @@ void master() {
 }
 
 void slave() {
-	int my_rank;
-
-	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-	if(my_rank == 1) {
-		slave_loop();
-	}
+	slave_loop();
+	printf("Slave exit\n");
 }

@@ -1,5 +1,5 @@
 CC = mpicc
-CFLAGS = -Wall -O0 -g
+CFLAGS = -Wall -O3 -g
 PROG = mpi-mm.elf
 SRCDIR = src
 
