@@ -1,4 +1,4 @@
-CC = gcc
+CC = mpicc
 CFLAGS = -Wall -O3 -g -fopenmp
 PROG = bucket.elf
 SRCDIR = src
@@ -9,8 +9,7 @@ objects = $(patsubst %.c, %.o, $(sources))
 
 run: $(PROG)
 	#@echo "Program Start:"
-	#mpiexec -n $$(nproc) ./$(PROG)
-	./$(PROG)
+	mpiexec -n $$(nproc) ./$(PROG)
 
 $(PROG): $(objects)
 	#echo "Compiling..."
