@@ -1,5 +1,5 @@
 CC = mpicc
-CFLAGS = -Wall -O3 -g
+CFLAGS = -Wall -O3 -g -fopenmp
 PROG = mpi-mm.elf
 SRCDIR = src
 
@@ -9,7 +9,6 @@ objects = $(patsubst %.c, %.o, $(sources))
 
 run: $(PROG)
 	#@echo "Program Start:"
-	#./$(PROG)
 	mpiexec -n $$(nproc) ./$(PROG)
 
 $(PROG): $(objects)

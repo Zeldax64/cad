@@ -6,10 +6,10 @@
 #include "linear.h"
 #include "blockmul.h"
 
-#define A_LINES 	 200
-#define A_COLS  	 200
-#define B_LINES 	 200
-#define B_COLS  	 200
+#define A_LINES 	 1000
+#define A_COLS  	 1000
+#define B_LINES 	 1000
+#define B_COLS  	 1000
 #define BLOCK_HEIGHT 20
 #define BLOCK_WIDTH  20
 // Reference multiply
@@ -66,6 +66,8 @@ int verify(fmat_t *A, fmat_t *B, fmat_t *C) {
 }
 
 void multiply(uint32_t m, uint32_t n, uint32_t p, float **a, float **b, float **c) {
+
+#pragma omp parallel for
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < p; j++) {
             c[i][j] = 0;
