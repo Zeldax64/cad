@@ -3,8 +3,11 @@
 #include <omp.h>
 #include <mpi.h>
 
+// Number of OpenMP threads used
 #define THREADS 4
-#define NUM_KEYS 48
+// Size of the array to be sorted
+#define NUM_KEYS 20
+// Maximum value+1 found in the array. 
 #define MAX_KEY 5
 
 void rank(int* key_array, const int SIZE);
@@ -16,7 +19,6 @@ void unbucket(int *keys, int *buckets);
 int main () {
 	int size = NUM_KEYS;
 	int *keys = NULL;
-	int *gather_keys = NULL;
 	int *buckets = NULL;
 	int *reduced_buckets = NULL;
 	int world_rank, world_size, elements_per_proc;
@@ -27,17 +29,18 @@ int main () {
 
 	if(world_rank == 0) {
 		keys = (int*)malloc(size*sizeof(int));
-		gather_keys = (int*)malloc(size*sizeof(int)); 
-		reduced_buckets = (int*)malloc(MAX_KEY*sizeof(int)); 
 		rand_key(keys, size);
 		printf("Input: ");		
 		print_keys(keys, size);
-		
+		reduced_buckets = (int*)malloc(MAX_KEY*sizeof(int)); 
 	}
+
 	buckets = (int*)malloc(MAX_KEY*sizeof(int)); 
 	
 	elements_per_proc = NUM_KEYS/world_size;
 	int *sub_keys = (int*)malloc(elements_per_proc*sizeof(int));
+
+	// Divide input data among MPI processes.
 	MPI_Scatter(keys, 
 				elements_per_proc,
 				MPI_INT,
@@ -47,28 +50,10 @@ int main () {
 				0,
 				MPI_COMM_WORLD);
 
-/*
-	MPI_Gather(sub_keys,
-			   elements_per_proc,
-			   MPI_INT,
-			   gather_keys,
-			   elements_per_proc,
-			   MPI_INT,
-			   0,
-			   MPI_COMM_WORLD);
-	
-	if(world_rank == 0) {
-		resort_gather_keys(keys, gather_keys, size);
-		printf("Output: ");
-		print_keys(keys, size);
-	}
-*/
-
+	// Compute buckets.
 	parallel_buckets(elements_per_proc, sub_keys, buckets);
-	
-	printf("Rank %d: ", world_rank);
-	print_keys(buckets,MAX_KEY);
 
+	// Return buckets to process 0.
 	MPI_Reduce(
 		buckets,
 		reduced_buckets,
@@ -79,19 +64,20 @@ int main () {
 		MPI_COMM_WORLD
 		);
 
-
+	// Process 0 finishes the sorting.
 	if(world_rank == 0) {
-		print_keys(reduced_buckets, MAX_KEY);
 		unbucket(keys, reduced_buckets);
 		printf("Unbucket: ");
 		print_keys(keys, size);
+		
 		free(keys);
 	}
+	
 	free(sub_keys);
-
 	MPI_Finalize();
 }
 
+// OpenMP bucket sort.
 void rank(int* key_array, const int SIZE) {
 	int i, k;
 	int *key_buff_ptr;
@@ -142,15 +128,21 @@ void rank(int* key_array, const int SIZE) {
 		}
 	} /*omp parallel*/
 
+	// Free data.
+	for(int i = 0; i < THREADS; ++i) {
+		free(key_buff1[i]);
+	}
+	free(key_buff1);
 }
 
-// Helper functions.
+// Generate a random array of a given size.
 void rand_key(int* key_array, int size) {
 	for(int i = 0; i < size; ++i) {
 		key_array[i] = rand() % MAX_KEY;
 	}
 }
 
+// Print array of a given size.
 void print_keys(int* keys, int size) {
 	for(int i = 0; i < size; ++i) {
 		printf("%d ", keys[i]);
@@ -158,6 +150,7 @@ void print_keys(int* keys, int size) {
 	printf("\n");
 }
 
+// Put array elements into buckets and return them.
 void parallel_buckets(int size, int *key_array, int *buckets) {
 	int i;
 	int *key_buff_ptr;
@@ -194,7 +187,7 @@ void parallel_buckets(int size, int *key_array, int *buckets) {
 
 		#pragma omp barrier
 		for( myid=1; myid<num_procs; myid++ ) {
-			#pragma omp for //nowait
+			#pragma omp for
 			for( i=0; i<MAX_KEY; i++ )
 				key_buff_ptr[i] += key_buff1[myid][i];
 		}
@@ -212,6 +205,7 @@ void parallel_buckets(int size, int *key_array, int *buckets) {
 	free(key_buff1);
 }
 
+// Unbucket array elements and finish sorting.
 void unbucket(int *keys, int *buckets) {
 	int i, k;
 
