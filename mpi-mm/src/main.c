@@ -6,8 +6,12 @@
 #include "linear.h"
 #include "blockmul.h"
 
-#define N_SIZE 2000
-
+#define A_LINES 	 200
+#define A_COLS  	 200
+#define B_LINES 	 200
+#define B_COLS  	 200
+#define BLOCK_HEIGHT 20
+#define BLOCK_WIDTH  20
 // Reference multiply
 void multiply(uint32_t m, uint32_t n, uint32_t p, float **a, float **b, float **c);
 void master();
@@ -74,8 +78,8 @@ void multiply(uint32_t m, uint32_t n, uint32_t p, float **a, float **b, float **
 
 void master() {
 	int world_size;
-	fmat_t *A = init_fmat(N_SIZE, N_SIZE);
-	fmat_t *B = init_fmat(N_SIZE, N_SIZE);
+	fmat_t *A = init_fmat(A_LINES, A_COLS);
+	fmat_t *B = init_fmat(B_LINES, B_COLS);
 
 	fmat_t *C = NULL;
 
@@ -84,7 +88,7 @@ void master() {
 
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	
-	C = mpi_blk_mul(A, B, 8, 8);
+	C = mpi_blk_mul(A, B, BLOCK_HEIGHT, BLOCK_WIDTH);
 
 	verify(A, B, C);
 	printf("Master exit\n");
