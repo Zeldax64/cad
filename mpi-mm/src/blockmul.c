@@ -6,57 +6,72 @@ static int WORLD_SIZE = 0;
 static MPI_Request *workers = NULL;
 static int workers_free = 0;
 
+// Private Master Functions
+static void inc_workers_free() {
+	workers_free++;
+}
+
+static void dec_workers_free() {
+	workers_free--;
+}
+
+static int get_workers_free() {
+	return workers_free;
+}
+
 // Master
 fmat_t* mpi_blk_mul(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_width) {
+	int worker;
 	uint32_t b_transposed = b->transposed;
 	
-	init_workers();
+	init_workers(); // Init MPI workers.
 	mm_t* tasks = init_mm(a, b, blk_height, blk_width);
 	
+	// Transpose matrix B to achieve better performance.
 	if(!b_transposed) {
 		transpose_fmat(b);
 	}
 
-	int dest;
-
 	for(uint32_t i = 0; i < tasks->res->lines; i+=tasks->blk_height) {
 		for(uint32_t j = 0; j < tasks->res->cols; j+=tasks->blk_width) {
-			if(has_worker()) {
-				dest = 1;
-				while(tasks->blocks[dest].status != DONE) {
-					dest=dest+1;
-				}
-				allocate_task(tasks, dest);
-				send_task(tasks, i, j, dest);
+			if(has_worker()) { // Is any worker free?
+				// Get a free worker and give him a task.
+				worker = get_free_worker(tasks);
+				allocate_task(tasks, worker, i, j);
 			}
 			else {
+				// Wait until a free worker appears.
 				wait_any(tasks);
 				j -= tasks->blk_width;
 			}
 		}
 	}
 
+	// Transpose matrix B back if necessary.
 	if(!b_transposed) {
 		transpose_fmat(b);
 	}
 
+	// Finalize other MPI processes and free objects.
 	finalize(tasks);
 	free_mm(tasks);
+
 	return tasks->res;
 }
 
 mm_t* init_mm(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_width) {
 	uint32_t res_lines, res_cols;
 
-	res_lines = a->lines;
-	res_cols = b->cols;
-
 	mm_t* mm = (mm_t*) malloc(sizeof(mm_t));
+
+	// Set matrices in MM object
 	mm->a = a;
 	mm->b = b;
+	res_lines = a->lines;
+	res_cols = b->cols;
 	mm->res = init_fmat(res_lines, res_cols);
 	
-	// Assert block height and width.
+	// Assert block height and width to avoid errors.
 	if(blk_height > a->lines || blk_height > b->lines) {
 		mm->blk_height = a->lines < b->lines? a->lines : b->lines;
 	}
@@ -70,8 +85,8 @@ mm_t* init_mm(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_width) {
 		mm->blk_width = blk_width;	
 	}
 
+	// Init list of working blocks.
 	mm->blocks = (block_t*) malloc(WORLD_SIZE*sizeof(block_t));
-
 	for(int i = 0; i < WORLD_SIZE; ++i) {
 		mm->blocks[i].status = DONE;
 	}
@@ -86,13 +101,23 @@ void free_mm(mm_t* mm) {
 
 void init_workers() {
 	MPI_Comm_size(MPI_COMM_WORLD, &WORLD_SIZE);
-	//WORLD_SIZE = 2;
 	workers = (MPI_Request *) malloc(WORLD_SIZE * sizeof(MPI_Request));
 	workers_free = WORLD_SIZE-1;
 }
 
 int has_worker() {
 	return workers_free > 0? 1:0;
+}
+
+// Iterate trhough the MM object and return a free worker.
+int get_free_worker(mm_t *mm) {
+	int worker = 1;
+
+	while(mm->blocks[worker].status != DONE) {
+		worker=worker+1;
+	}
+
+	return worker;
 }
 
 void receive_block(mm_t* mm, int src) {
@@ -112,7 +137,7 @@ void wait_any(mm_t* mm) {
 	MPI_Waitany(WORLD_SIZE-1, &workers[1], &worker, &stat);
 	receive_block(mm, worker+1);
 
-	workers_free++;
+	inc_workers_free();
 }
 
 void wait_all(mm_t* mm) {
@@ -129,13 +154,18 @@ void wait_all(mm_t* mm) {
 	workers_free = WORLD_SIZE-1;
 }
 
-void allocate_task(mm_t* mm, int dest) {
+// This function takes the destiny process and allocate
+// a task to it.
+void allocate_task(mm_t* mm, int dest, uint32_t i, uint32_t j) {
 	int task = 1;
 	
 	MPI_Send(&task, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
 	mm->blocks[dest].status = PROCESSING;
 
-	workers_free -= 1;
+	dec_workers_free();
+
+	// Send task to another process.
+	send_task(mm, i, j, dest);
 }
 
 void send_task(mm_t* mm, uint32_t i, uint32_t j, int dest) {
@@ -149,9 +179,11 @@ void send_task(mm_t* mm, uint32_t i, uint32_t j, int dest) {
 	blk_height = (mm->res->lines-i) > mm->blk_height ? mm->blk_height : mm->res->lines-i;
 	blk_width = (mm->res->cols-j) > mm->blk_width ? mm->blk_width : mm->res->cols-j;
 
+	// TODO: A improvement could be made here if 
+	// the slicing operation didn't need to create
+	// a new fmat object. 
 	// Create slices of matrices A and B.
 	fmat_t *a, *b;
-
 	a = init_fmat(blk_height, mm->a->cols);
 	b = init_fmat(blk_width, mm->b->cols);
 
@@ -167,7 +199,7 @@ void send_task(mm_t* mm, uint32_t i, uint32_t j, int dest) {
 		}
 	}
 
-	// Send data and wait response.
+	// Send data to worker.
 	MPI_Send(&blk_height, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
 	MPI_Send(&blk_width, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
 
@@ -177,10 +209,16 @@ void send_task(mm_t* mm, uint32_t i, uint32_t j, int dest) {
 	mm->blocks[dest].i = i;
 	mm->blocks[dest].j = j;
 
+	// Set worker as pending in workers' array.
 	MPI_Irecv(&mm->blocks[dest].status, 1, MPI_INT, dest, 0, MPI_COMM_WORLD, &workers[dest]);
 
 	free_fmat(a);
 	free_fmat(b);
+}
+
+void master_worker(mm_t* mm) {
+	// TODO: This function uses the master to multiply a 
+	// matrix.
 }
 
 void finalize(mm_t* mm) {

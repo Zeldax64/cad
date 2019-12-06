@@ -23,11 +23,13 @@ mm_t* init_mm(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_width);
 void free_mm(mm_t* mm);
 void init_workers();
 int  has_worker();
+int  get_free_worker();
 void receive_block(mm_t* mm, int src);
 void wait_any(mm_t* mm);
 void wait_all(mm_t* mm);
-void allocate_task(mm_t* mm, int dest);
+void allocate_task(mm_t* mm, int dest, uint32_t i, uint32_t j);
 void send_task(mm_t* mm, uint32_t i, uint32_t j, int dest); 
+void master_worker(mm_t* mm);
 void finalize(mm_t* mm);
 
 // Slave
