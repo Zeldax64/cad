@@ -7,12 +7,12 @@
 #include "linear.h"
 #include "blockmul.h"
 
-#define A_LINES 	 2500
-#define A_COLS  	 2500
-#define B_LINES 	 2500
-#define B_COLS  	 2500
-#define BLOCK_HEIGHT 20
-#define BLOCK_WIDTH  20
+#define A_LINES 	 300
+#define A_COLS  	 300
+#define B_LINES 	 300
+#define B_COLS  	 400
+#define BLOCK_HEIGHT 103
+#define BLOCK_WIDTH  818
 
 int OPENMP_THREADS;
 

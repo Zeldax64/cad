@@ -19,10 +19,11 @@ static int get_workers_free() {
 	return workers_free;
 }
 
-// Master
+// Master functions.
 fmat_t* mpi_blk_mul(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_width) {
 	int worker;
 	uint32_t b_transposed = b->transposed;
+	int master_threads;
 	
 	init_workers(); // Init MPI workers.
 	mm_t* tasks = init_mm(a, b, blk_height, blk_width);
@@ -32,20 +33,25 @@ fmat_t* mpi_blk_mul(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_widt
 		transpose_fmat(b);
 	}
 
+	master_threads = (OPENMP_THREADS == 1) ? 2 : OPENMP_THREADS;
+#pragma omp parallel num_threads(master_threads)
+{
+	#pragma omp single
 	for(uint32_t i = 0; i < tasks->res->lines; i+=tasks->blk_height) {
-		for(uint32_t j = 0; j < tasks->res->cols; j+=tasks->blk_width) {
-			if(has_worker()) { // Is any worker free?
+		for(uint32_t j = 0; j < tasks->res->cols; j+=tasks->blk_width) {			
+			if(has_worker()) { // Is any worker free?				
 				// Get a free worker and give him a task.
 				worker = get_free_worker(tasks);
 				allocate_task(tasks, worker, i, j);
 			}
 			else {
-				// Wait until a free worker appears.
+				// Wait until a free worker appears.				
 				wait_any(tasks);
 				j -= tasks->blk_width;
 			}
 		}
 	}
+}
 
 	// Transpose matrix B back if necessary.
 	if(!b_transposed) {
@@ -102,7 +108,7 @@ void free_mm(mm_t* mm) {
 void init_workers() {
 	MPI_Comm_size(MPI_COMM_WORLD, &WORLD_SIZE);
 	workers = (MPI_Request *) malloc(WORLD_SIZE * sizeof(MPI_Request));
-	workers_free = WORLD_SIZE-1;
+	workers_free = WORLD_SIZE;
 }
 
 int has_worker() {
@@ -111,7 +117,7 @@ int has_worker() {
 
 // Iterate trhough the MM object and return a free worker.
 int get_free_worker(mm_t *mm) {
-	int worker = 1;
+	int worker = 0;
 
 	while(mm->blocks[worker].status != DONE) {
 		worker=worker+1;
@@ -134,8 +140,14 @@ void wait_any(mm_t* mm) {
 	int worker = 0;
 	MPI_Status stat;
 
-	MPI_Waitany(WORLD_SIZE-1, &workers[1], &worker, &stat);
-	receive_block(mm, worker+1);
+	MPI_Waitany(WORLD_SIZE, &workers[0], &worker, &stat);
+
+	if(worker == MASTER_RANK) {
+	
+	}
+	else {
+		receive_block(mm, worker);
+	}
 
 	inc_workers_free();
 }
@@ -168,8 +180,17 @@ void allocate_task(mm_t* mm, int dest, uint32_t i, uint32_t j) {
 	mm->blocks[dest].blk_height = (mm->res->lines-i) > mm->blk_height ? mm->blk_height : mm->res->lines-i;
 	mm->blocks[dest].blk_width = (mm->res->cols-j) > mm->blk_width ? mm->blk_width : mm->res->cols-j;
 
-	// Send task to another process.
-	send_task(mm, dest);
+	if(dest == 0) {
+		#pragma omp task 
+		{ master_worker(mm); }
+		// Set worker as pending in workers' array.
+		MPI_Irecv(&mm->blocks[dest].status, 1, MPI_INT, dest, 0, MPI_COMM_WORLD, &workers[dest]);
+	}
+	else {
+		// Send task to another process.
+		send_task(mm, dest);		
+	}
+
 }
 
 void send_task(mm_t* mm, int dest) {
@@ -224,9 +245,23 @@ void send_task(mm_t* mm, int dest) {
 	free_fmat(b);
 }
 
+// Use master process to also multiply the matrix.
 void master_worker(mm_t* mm) {
-	// TODO: This function uses the master to multiply a 
-	// matrix.
+	fmat_t *res;
+	block_t *task = &(mm->blocks[MASTER_RANK]);
+	float **a = &mm->a->mat[task->i];
+	float **b = &mm->b->mat[task->j];
+	int done = DONE;
+
+	res = blk_mul(a, b, task->blk_height, task->blk_width, mm->a->cols);
+
+	set_blk(task->i, task->j, res->lines, res->cols, res->mat, mm->res->mat);
+	task->status = DONE;
+
+	// Tell master that the block is done.
+	MPI_Send(&done, 1, MPI_INT, MASTER_RANK, 0, MPI_COMM_WORLD);
+
+	free_fmat(res);	
 }
 
 void finalize(mm_t* mm) {
