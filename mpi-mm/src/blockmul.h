@@ -8,6 +8,7 @@ typedef enum {DONE, WAITING, PROCESSING} STATUS;
 
 typedef struct block_t {
 	uint32_t i, j;
+	uint32_t blk_height, blk_width;
 	STATUS status;
 } block_t;
 
@@ -28,7 +29,7 @@ void receive_block(mm_t* mm, int src);
 void wait_any(mm_t* mm);
 void wait_all(mm_t* mm);
 void allocate_task(mm_t* mm, int dest, uint32_t i, uint32_t j);
-void send_task(mm_t* mm, uint32_t i, uint32_t j, int dest); 
+void send_task(mm_t* mm, int dest); 
 void master_worker(mm_t* mm);
 void finalize(mm_t* mm);
 

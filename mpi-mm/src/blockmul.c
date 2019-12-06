@@ -157,27 +157,31 @@ void wait_all(mm_t* mm) {
 // This function takes the destiny process and allocate
 // a task to it.
 void allocate_task(mm_t* mm, int dest, uint32_t i, uint32_t j) {
-	int task = 1;
 	
-	MPI_Send(&task, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
-	mm->blocks[dest].status = PROCESSING;
-
 	dec_workers_free();
+	// Update block status
+	mm->blocks[dest].status = PROCESSING;
+	mm->blocks[dest].i = i;
+	mm->blocks[dest].j = j;
+
+	// Assert block height and width.
+	mm->blocks[dest].blk_height = (mm->res->lines-i) > mm->blk_height ? mm->blk_height : mm->res->lines-i;
+	mm->blocks[dest].blk_width = (mm->res->cols-j) > mm->blk_width ? mm->blk_width : mm->res->cols-j;
 
 	// Send task to another process.
-	send_task(mm, i, j, dest);
+	send_task(mm, dest);
 }
 
-void send_task(mm_t* mm, uint32_t i, uint32_t j, int dest) {
-	uint32_t blk_height, blk_width;
+void send_task(mm_t* mm, int dest) {
+	uint32_t i = mm->blocks[dest].i;
+	uint32_t j = mm->blocks[dest].j;
+	uint32_t blk_height = mm->blocks[dest].blk_height; 
+	uint32_t blk_width = mm->blocks[dest].blk_width;
+	
 	float **a_slc, **b_slc;
 
 	a_slc = &mm->a->mat[i];
 	b_slc = &mm->b->mat[j];
-
-	// Assert block height and width.
-	blk_height = (mm->res->lines-i) > mm->blk_height ? mm->blk_height : mm->res->lines-i;
-	blk_width = (mm->res->cols-j) > mm->blk_width ? mm->blk_width : mm->res->cols-j;
 
 	// TODO: A improvement could be made here if 
 	// the slicing operation didn't need to create
@@ -200,14 +204,18 @@ void send_task(mm_t* mm, uint32_t i, uint32_t j, int dest) {
 	}
 
 	// Send data to worker.
+
+	// Tell another process that he will receive a task.
+	int task = 1;
+	MPI_Send(&task, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+
+	// Send block dimensions.
 	MPI_Send(&blk_height, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
 	MPI_Send(&blk_width, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
 
+	// Send matrices.
 	MPI_Send_fmat(a, dest);
 	MPI_Send_fmat(b, dest);
-
-	mm->blocks[dest].i = i;
-	mm->blocks[dest].j = j;
 
 	// Set worker as pending in workers' array.
 	MPI_Irecv(&mm->blocks[dest].status, 1, MPI_INT, dest, 0, MPI_COMM_WORLD, &workers[dest]);
