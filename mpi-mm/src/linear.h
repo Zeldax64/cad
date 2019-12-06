@@ -9,6 +9,8 @@
 
 #include <mpi.h>
 
+#include "global.h"
+
 typedef struct farr {
 	uint32_t size;
 

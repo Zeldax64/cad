@@ -1,32 +1,39 @@
-#include <mpi.h>
+//#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "global.h"
 #include "linear.h"
 #include "blockmul.h"
 
-#define A_LINES 	 1000
-#define A_COLS  	 1000
-#define B_LINES 	 1000
-#define B_COLS  	 1000
+#define A_LINES 	 2500
+#define A_COLS  	 2500
+#define B_LINES 	 2500
+#define B_COLS  	 2500
 #define BLOCK_HEIGHT 20
 #define BLOCK_WIDTH  20
+
+int OPENMP_THREADS;
+
 // Reference multiply
 void multiply(uint32_t m, uint32_t n, uint32_t p, float **a, float **b, float **c);
 void master();
 void slave();
 
 
-int main() {
-	// Initialize the MPI environment
+int main(int argc, char *argv[]) {
+	// Set number of OpenMP threads.
+	OPENMP_THREADS = atoi(argv[1]);
+
+	// Initialize the MPI environment.
 	MPI_Init(NULL, NULL);
 
-	// Get the number of processes
+	// Get the number of processes.
 	int world_size;
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-	// Get the rank of the process
+	// Get the rank of the process.
 	int world_rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
@@ -92,7 +99,7 @@ void master() {
 	
 	C = mpi_blk_mul(A, B, BLOCK_HEIGHT, BLOCK_WIDTH);
 
-	verify(A, B, C);
+	//verify(A, B, C);
 	printf("Master exit\n");
 
 

@@ -169,7 +169,7 @@ float mul_arr(uint32_t n, float *a, float *b) {
 fmat_t* blk_mul(float **a, float **b, uint32_t blk_x, uint32_t blk_y, uint32_t arr_size) {
 	fmat_t* block = init_fmat(blk_x, blk_y);
 
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) num_threads(OPENMP_THREADS)
 	for(uint32_t i = 0; i < blk_x; ++i) {
 		for(uint32_t j = 0; j < blk_y; ++j) {
 			block->mat[i][j] = mul_arr(arr_size, a[i], b[j]);
