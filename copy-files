@@ -1,0 +1,42 @@
+#!/bin/bash
+
+function print_help() {
+	text="Script para copiar arquivos entre os computadores do cluster.
+Exemplo de uso:
+1) $copy-files hello
+2) $copy-files hello1 hello2
+
+Em 1) o arquivo hello e copiado para as maquinas do cluster, com 
+exceçao da maquina 1. Em 2) os arquivos hello1 e hello2 são copiados.
+Você pode passar quantos arquivos quiser.
+"
+
+	echo "$text"
+}
+
+function move_file() {
+	for remote in $(seq 2 4)
+	do
+		rcp $1 cad-disciplina-2019-$remote:
+	done
+}
+
+function main {
+	while [[ $# -ne 0 ]]
+	do
+		arg="$1"
+		case "$arg" in
+			-h | --help)
+				print_help
+				exit 0
+				;;
+		*)
+			move_file "$1"
+			;;
+		esac
+		shift
+	done
+
+}
+
+main "$@"
