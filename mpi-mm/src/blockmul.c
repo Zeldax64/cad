@@ -108,6 +108,9 @@ void free_mm(mm_t* mm) {
 void init_workers() {
 	MPI_Comm_size(MPI_COMM_WORLD, &WORLD_SIZE);
 	workers = (MPI_Request *) malloc(WORLD_SIZE * sizeof(MPI_Request));
+	for(uint32_t i = 0; i < WORLD_SIZE; ++i) { 
+		workers[i] = MPI_REQUEST_NULL;
+	}
 	workers_free = WORLD_SIZE;
 }
 
@@ -140,7 +143,9 @@ void wait_any(mm_t* mm) {
 	int worker = 0;
 	MPI_Status stat;
 
+	printf("VAI FALHAR\n");
 	MPI_Waitany(WORLD_SIZE, &workers[0], &worker, &stat);
+	printf("FALHOU\n");
 
 	if(worker == MASTER_RANK) {
 	
@@ -239,6 +244,7 @@ void send_task(mm_t* mm, int dest) {
 	MPI_Send_fmat(b, dest);
 
 	// Set worker as pending in workers' array.
+	printf("My dest: %d\n", dest);
 	MPI_Irecv(&mm->blocks[dest].status, 1, MPI_INT, dest, 0, MPI_COMM_WORLD, &workers[dest]);
 
 	free_fmat(a);
