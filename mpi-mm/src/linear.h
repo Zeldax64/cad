@@ -8,6 +8,7 @@
 #include <stdbool.h>
 
 #include <mpi.h>
+#include <omp.h>
 
 #include "global.h"
 

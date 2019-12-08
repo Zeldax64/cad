@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <omp.h>
 #include "linear.h"
 
 typedef enum {DONE, WAITING, PROCESSING} STATUS;

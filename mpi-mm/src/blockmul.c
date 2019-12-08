@@ -34,6 +34,10 @@ fmat_t* mpi_blk_mul(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_widt
 	}
 
 	master_threads = (OPENMP_THREADS == 1 && WORLD_SIZE == 1) ? 2 : OPENMP_THREADS;
+	printf("Master threads: %d\n", master_threads);
+	printf("OPENMP_THREADS: %d\n", OPENMP_THREADS);
+
+	omp_set_nested(1);
 #pragma omp parallel num_threads(master_threads)
 {
 	#pragma omp single
