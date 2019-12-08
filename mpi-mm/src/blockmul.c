@@ -33,7 +33,7 @@ fmat_t* mpi_blk_mul(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_widt
 		transpose_fmat(b);
 	}
 
-	master_threads = (OPENMP_THREADS == 1) ? 2 : OPENMP_THREADS;
+	master_threads = (OPENMP_THREADS == 1 && WORLD_SIZE == 1) ? 2 : OPENMP_THREADS;
 #pragma omp parallel num_threads(master_threads)
 {
 	#pragma omp single
