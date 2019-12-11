@@ -1,4 +1,4 @@
-//#include <mpi.h>
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -7,12 +7,12 @@
 #include "linear.h"
 #include "blockmul.h"
 
-#define A_LINES 	 300
-#define A_COLS  	 300
-#define B_LINES 	 300
-#define B_COLS  	 400
-#define BLOCK_HEIGHT 103
-#define BLOCK_WIDTH  818
+#define A_LINES 	15000
+#define A_COLS  	15000
+#define B_LINES 	15000
+#define B_COLS  	15000
+#define BLOCK_HEIGHT 3000
+#define BLOCK_WIDTH  3000
 
 int OPENMP_THREADS;
 
@@ -52,12 +52,12 @@ int main(int argc, char *argv[]) {
 
 int verify(fmat_t *A, fmat_t *B, fmat_t *C) {
 	fmat_t *C_ref = init_fmat(A->lines, B->cols);
-	
+
 	multiply(A->lines, A->cols, B->cols, A->mat, B->mat, C_ref->mat);
-	
+
 	if(!cmp_fmat(C, C_ref)) {
 		printf("Matrices aren't equal!\n");
-		
+
 		printf("Res\n");
 		print_fmat(C);
 		printf("------\n");
@@ -96,11 +96,11 @@ void master() {
 	rand_fmat(B);
 
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-	
+
 	C = mpi_blk_mul(A, B, BLOCK_HEIGHT, BLOCK_WIDTH);
 
 	//verify(A, B, C);
-	printf("Master exit\n");
+	//printf("Master exit\n");
 
 
 	free_fmat(A);
@@ -110,5 +110,5 @@ void master() {
 
 void slave() {
 	slave_loop();
-	printf("Slave exit\n");
+	//printf("Slave exit\n");
 }
