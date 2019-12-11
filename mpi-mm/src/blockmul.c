@@ -23,22 +23,22 @@ static int get_workers_free() {
 fmat_t* mpi_blk_mul(fmat_t* a, fmat_t* b, uint32_t blk_height, uint32_t blk_width) {
 	int worker;
 	uint32_t b_transposed = b->transposed;
-	int master_threads;
-	
+	//int master_threads;
+
 	init_workers(); // Init MPI workers.
 	mm_t* tasks = init_mm(a, b, blk_height, blk_width);
-	
+
 	// Transpose matrix B to achieve better performance.
 	if(!b_transposed) {
 		transpose_fmat(b);
 	}
 
-	master_threads = (OPENMP_THREADS == 1 && WORLD_SIZE == 1) ? 2 : OPENMP_THREADS;
-	printf("Master threads: %d\n", master_threads);
+	//master_threads = (OPENMP_THREADS == 1 && WORLD_SIZE == 1) ? 2 : OPENMP_THREADS;
+	//printf("Master threads: %d\n", master_threads);
 	printf("OPENMP_THREADS: %d\n", OPENMP_THREADS);
 
 	omp_set_nested(1);
-#pragma omp parallel num_threads(master_threads)
+#pragma omp parallel num_threads(OPENMP_THREADS+1)
 {
 	#pragma omp single
 	for(uint32_t i = 0; i < tasks->res->lines; i+=tasks->blk_height) {

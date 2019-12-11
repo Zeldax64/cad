@@ -69,6 +69,7 @@ bool cmp_fmat(fmat_t* a, fmat_t* b) {
 	for(uint32_t i = 0; i < a->lines; ++i) {
 		for(uint32_t j = 0; j < b->cols; ++j) {
 			if(a->mat[i][j] != b->mat[i][j]) {
+				printf("cmp_fmat: i=%d j%d\n", i, j);
 				return false;
 			}
 		}
@@ -106,9 +107,9 @@ float* zero_arr_f(uint32_t n) {
 
 float* rand_arr_f(uint32_t n) {
 	float* arr;
-	
+
 	arr = (float *) malloc(n * sizeof(float));
-	
+
 	for(uint32_t i = 0; i < n; ++i) {
 		arr[i] = rand();
 	}
@@ -169,7 +170,7 @@ float mul_arr(uint32_t n, float *a, float *b) {
 fmat_t* blk_mul(float **a, float **b, uint32_t blk_x, uint32_t blk_y, uint32_t arr_size) {
 	fmat_t* block = init_fmat(blk_x, blk_y);
 
-#pragma omp parallel for schedule(dynamic) num_threads(OPENMP_THREADS)
+#pragma omp parallel for schedule(static) num_threads(OPENMP_THREADS)
 	for(uint32_t i = 0; i < blk_x; ++i) {
 		for(uint32_t j = 0; j < blk_y; ++j) {
 			//printf("i = %d j = %d\n", i, j);
@@ -207,7 +208,7 @@ fmat_t* MPI_Recv_fmat(int src) {
 
 	MPI_Recv(&fmat->lines, 1, MPI_INT, src, 0, MPI_COMM_WORLD, &stat);
 	MPI_Recv(&fmat->cols, 1, MPI_INT, src, 0, MPI_COMM_WORLD, &stat);
-	
+
 	float** new_mat = zero_mat_f(fmat->lines, fmat->cols);
 
 	for(uint32_t i = 0; i < fmat->lines; ++i) {
@@ -218,3 +219,33 @@ fmat_t* MPI_Recv_fmat(int src) {
 
 	return fmat;
 }
+/*
+void MPI_Psend_fmat(fmat_t* fmat, int dest) {
+	MPI_Send(&fmat->lines, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+	MPI_Send(&fmat->cols, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+
+	for(uint32_t i = 0; i < fmat->lines; ++i) {
+		MPI_Send(&fmat->mat[i][0], fmat->cols, MPI_FLOAT, dest, 0, MPI_COMM_WORLD);
+	}
+}
+
+fmat_t* MPI_Precv_fmat(int src) {
+	MPI_Status stat;
+
+	fmat_t* fmat = init_fmat(1,1);
+	free_mat(fmat->lines, fmat->mat);
+
+	MPI_Recv(&fmat->lines, 1, MPI_INT, src, 0, MPI_COMM_WORLD, &stat);
+	MPI_Recv(&fmat->cols, 1, MPI_INT, src, 0, MPI_COMM_WORLD, &stat);
+
+	float** new_mat = zero_mat_f(fmat->lines, fmat->cols);
+
+	for(uint32_t i = 0; i < fmat->lines; ++i) {
+		MPI_Recv(&new_mat[i][0], fmat->cols, MPI_FLOAT, src, 0, MPI_COMM_WORLD, &stat);
+	}
+
+	fmat->mat = new_mat;
+
+	return fmat;
+}
+*/
