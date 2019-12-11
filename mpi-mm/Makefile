@@ -1,5 +1,5 @@
 CC = mpicc
-CFLAGS = -Wall -O3 -fopenmp -march=native -funroll-loops
+CFLAGS = -Wall -O3 -fopenmp -march=native -funroll-loops #-ffast-math
 PROG = mpi-mm.elf
 SRCDIR = src
 PROCS = 4
